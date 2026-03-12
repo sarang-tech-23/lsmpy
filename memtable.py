@@ -7,11 +7,9 @@ import struct
 
 
 class Node():
-    def __init__(self, val=-1, levels = 16, k=None, v=None):
-        self.val = val
+    def __init__(self, levels = 16, k=None, v=None):
         self.k = k
         self.v = v
-        
         self.levels = [None] * levels 
 
 
@@ -21,18 +19,20 @@ class Skiplist():
         self.start_node = Node(levels=self.max_levels)
     
     def _toss(self):
+        # probablity to of level n = (.5) ** n
         lvl = 1
-        # Standard Skip List level generation: p = 0.5
         while random.random() < 0.5 and lvl < self.max_levels:
             lvl += 1
-        return lvl # Returns 1 to 16
+        return lvl
 
-
+    # time complexity Log(N)
     def _iter(self, key):
-        # find the starting node level for particular value and iterate through all its levels top to down
-        node = self.start_node
+        # find the starting node level for particular value and iterate through all its levels top down
+        node = self.start_node # inititaly we are at top level of start node
         
         for cur_level in range(self.max_levels-1, -1, -1):
+            # if the next(right) node is not none and its key is smaller than the key we are finding
+            # move to right now
             while (node.levels[cur_level] is not None) and key > node.levels[cur_level].k:
                 node = node.levels[cur_level] # move right
             yield node, cur_level     
@@ -43,20 +43,21 @@ class Skiplist():
                 return node.levels[cur_level]
         return False   
 
-    def add(self, value, k, v):
+    # time complexity log(N)
+    def add(self, k, v):
         new_lev = self._toss()
-        new_node = Node(val=value, levels=new_lev, k=k, v=v)
+        new_node = Node(levels=new_lev, k=k, v=v)
         
+        # self._iter(k) is returning the node with largest key 
+        # which is smaller than the key we are adding
         for node, cur_lev in self._iter(k):
             if cur_lev < new_lev:
                 new_node.levels[cur_lev] = node.levels[cur_lev]
                 node.levels[cur_lev] = new_node
 
-    def update(self, value, k, v):
+    def update(self, k, v):
         node = self.find(k)
         if node is not False:
-            node.val = value
-            node.k = k
             node.v = v
             return True
         return False
@@ -65,12 +66,12 @@ class Skiplist():
     def delete(self, k):
         node = self.find(k)
         if node is not False:
-            node.val = -1
+            node.v = None
             return True
         return False
 
     def print_levels(self):
-        for lvl in range(self.max_levels - 1, -1, -1):
+        for lvl in range(self.max_levels-1, -1, -1):
             node = self.start_node.levels[lvl]
             print(f"Level {lvl:02d}: ", end="")
             while node:
@@ -125,37 +126,25 @@ class Memtable():
         self.current_size = 0
         self.key_cnt = 0
         self.walpath = walpath
-
-    def _string_to_unique_int(self, input_string):
-        hash_object = hashlib.sha256(input_string.encode())
-        hex_dig = hash_object.hexdigest()
-        return int(hex_dig, 16)
     
     def find(self, k):
         print(f'->> memtable_find_k: {k}::{type(k)}')
-        value = self._string_to_unique_int(k)
         node = self.skiplist.find(k)
         if node is not False:
             return node.v
         return ''
     
     def add(self, k, v):
-        value = self._string_to_unique_int(k)
-        self.skiplist.add(value, k, v)
+        self.skiplist.add(k, v)
         self.current_size += len(k) + len(v) + 28 # interger = 28 byts
         self.key_cnt += 1
 
     def update(self, k, v):
-        value = self._string_to_unique_int(k)
-        self.skiplist.update(value, k, v)
+        self.skiplist.update(k, v)
         self.current_size += len(k) + len(v) + 28 # interger = 28 byts
         self.key_cnt += 1
 
     def delete(self, k):
-        value = self._string_to_unique_int(k)
         self.skiplist.delete(k)
         self.current_size += len(k) + 28 # interger = 28 byts
         self.key_cnt += 1
-
-
-

@@ -58,7 +58,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     while True:
         conn, addr = s.accept()
-        print("Connected:", addr)
+        # print("Connected:", addr)
 
         with conn:
             try: 

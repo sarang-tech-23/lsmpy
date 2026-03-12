@@ -33,10 +33,13 @@ class LsmpyClient():
 
 client = LsmpyClient()
 
-# print(client.set('name', 'aditya'))
-for i in range(239, 300):
+
+for i in range(370, 500):
     # print(client.set(f'name_{i}', f'aditya_{i}'))
     print(client.get(f'name_{i}'))
+    # print(client.update(f'name_{i}', f'aditya_{i}{i}'))
+
+    # print(client.delete(f'name_{i}'))
 
 # print(client.delete('name'))
 

@@ -8,7 +8,7 @@ def get_sst_file_with_max_filename():
     ]
     if len(sst_files):
         sst_files.sort()
-        return sst_files[-1]
+        return sst_files[-1].split('/')[-1][:-4]
     return '0'
 
 def get_hashes(key, m, k=3):
@@ -54,7 +54,7 @@ class SsTable:
         
         # check the sparse index -> binary search over keys
         # sparse_index(key, current_offset)
-        lp, rp = 0, len(self.sparse_index)
+        lp, rp = 0, len(self.sparse_index)-1
         while(lp <= rp):
             mid = lp + (rp-lp) // 2
             if key >= self.sparse_index[mid][0]:
@@ -62,12 +62,18 @@ class SsTable:
             else:
                 rp = mid - 1
 
+        offset = 0
+        if rp >= 0:
+            offset = self.sparse_index[rp][1]
+
         with open(self.sstable_path, 'rb') as f:
-            f.seek(self.sparse_index[rp][1])
+            f.seek(offset)
             key_cnt = 10
             while key_cnt:
                 key_cnt -= 1
                 lenbytes = f.read(8)
+                if len(lenbytes) < 8:
+                    continue
                 klen, vlen = struct.unpack('>II', lenbytes)
                 curr_key = f.read(klen)
                 value = f.read(vlen)
@@ -83,14 +89,13 @@ class SsTable:
             sstable = SsTable(pathname)
             node = memtable.skiplist.start_node
             level_zero = 0
-            prev_key = ''
             cnt = 0
             sstable.bloom_filter = [None] * total_key * 10
             bloom_filter_len = len(sstable.bloom_filter)
             current_offset = 0
 
             while node and node.levels[level_zero]:
-                if prev_key == node.levels[level_zero].k:
+                if node.levels[level_zero].k is None: # skip deleted keys
                     node = node.levels[level_zero]
                     continue
                 cnt += 1
@@ -118,8 +123,6 @@ class SsTable:
                 for pos in get_hashes(key, bloom_filter_len):
                     sstable.bloom_filter[pos] = 1
                 
-                print(f'=>> sstable_write: {prev_key}')
-                prev_key = node.levels[level_zero].k
                 node = node.levels[level_zero]
             
             # save sparse index
