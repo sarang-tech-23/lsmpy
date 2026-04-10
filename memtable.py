@@ -3,6 +3,7 @@ import hashlib
 import uuid
 import os
 import struct
+from constants import TOMBSTONE
 
 
 
@@ -66,7 +67,7 @@ class Skiplist():
     def delete(self, k):
         node = self.find(k)
         if node is not False:
-            node.v = None
+            node.v = TOMBSTONE
             return True
         return False
 
@@ -146,5 +147,3 @@ class Memtable():
 
     def delete(self, k):
         self.skiplist.delete(k)
-        self.current_size += len(k) + 28 # interger = 28 byts
-        self.key_cnt += 1

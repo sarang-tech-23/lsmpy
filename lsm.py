@@ -1,26 +1,37 @@
 import threading, pathlib, struct, sys, os
 from memtable import Memtable, WAL
-from sstable import SsTable
+from sstable import SSTable
 
 class LSMTree():
-    def __init__(self, mem_size=6400):
+    def __init__(self, mem_size=640):
         self.waldir = '/tmp/lsmpy/wal'
         self.sstdir = '/tmp/lsmpy/sst'
         self.inactive_memtables = []
         self.mem_size = mem_size
         self.write_lock = threading.Lock()
         self.sstable_list = []
+        self._init_schema()
         self._load_sstable()
         self._recover_memtables()
+    
+    def _init_schema(self):
+        os.makedirs(self.waldir, exist_ok=True)
+        os.makedirs(self.sstdir, exist_ok=True)
 
     def _load_sstable(self):
         ls_sstable = list(pathlib.Path(self.sstdir).glob("*.sst"))
         ls_sstable.sort(reverse=True)
 
+        # load create instances for each sst data file and loads its sparse index and
+        # bloom filter in memory for fast reads
         for sst_file in ls_sstable:
-            self.sstable_list.append(SsTable(sst_file.stem))
+            self.sstable_list.append(SSTable(sst_file.stem))
     
     def _replay_wal(self, walfile):
+        '''
+        there could be multiple wal
+        wal naming convention should also be in ascending order
+        '''
         with open(walfile, 'rb') as f:
             while True:
                 lenbytes = f.read(8)
@@ -68,20 +79,12 @@ class LSMTree():
         with self.write_lock:
             self.active_memtable.delete(k=k)
             self.active_wal.append(k=k, v='')
-            # if sys.getsizeof(self.active_memtable) >= self.mem_size:
-            #     self.inactive_memtables.append(self.active_memtable)
-            #     self.active_memtable = Memtable()
-            #     self.active_wal = WAL()
         return 'ok'
 
     def update(self, k, v):
         with self.write_lock:
             self.active_memtable.update(k=k, v=v)
             self.active_wal.append(k=k, v=v)
-            # if sys.getsizeof(self.active_memtable) >= self.mem_size:
-            #     self.inactive_memtables.append(self.active_memtable)
-            #     self.active_memtable = Memtable()
-            #     self.active_wal = WAL()
         return 'ok'
 
     def add(self, k, v):
@@ -91,7 +94,7 @@ class LSMTree():
             print(f'=>> memtable_size: {self.active_memtable.current_size} / {self.mem_size}')
             if self.active_memtable.current_size >= self.mem_size:
                 # todo
-                sstable = SsTable.create_sstable_from_memtable(self.active_memtable, self.active_memtable.key_cnt)
+                sstable = SSTable.create_sstable_from_memtable(self.active_memtable, self.active_memtable.key_cnt)
                 self.sstable_list.append(sstable)
 
                 '''
