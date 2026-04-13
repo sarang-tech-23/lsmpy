@@ -3,15 +3,33 @@ from constants import BLOOM_FILTER_LEN
 from heap import MinHeap
 
 def get_sst_file_with_max_filename():
+    def get_sst_filename_num(filepath):
+        return int(os.path.basename(filepath).split('.')[0])
+    
     sst_files = [
         os.path.join('/tmp/lsmpy/sst', f)
         for f in os.listdir('/tmp/lsmpy/sst')
         if f.endswith(".sst") and os.path.isfile(os.path.join('/tmp/lsmpy/sst', f))
     ]
     if len(sst_files):
-        sst_files.sort()
+        sst_files.sort(key=get_sst_filename_num) # sorts based on numerical value of filename
         return sst_files[-1].split('/')[-1][:-4]
     return '0'
+
+def delete_sst_files_less_than(threshold, dir = '/tmp/lsmpy/sst'):
+    for f in os.listdir(dir):
+        filepath = os.path.join(dir, f)
+        if not os.path.isfile(filepath):
+            continue
+        stem, ext = os.path.splitext(f)
+        try:
+            file_num = int(stem)
+            if file_num < threshold:
+                os.remove(filepath)
+        except Exception as e:
+            print(f'error deleting sst file: {e}')
+            continue
+
 
 def get_hashes(key, m, k=3):
     '''
@@ -52,6 +70,8 @@ class SSTCursor:
         return key, value
 
 class SSTable:
+    sstdir = '/tmp/lsmpy/sst' # can be used as class as well as instance attribute
+
     def __init__(self, stem):
         self.sstdir = '/tmp/lsmpy/sst'
         self.filepath = os.path.join(self.sstdir, stem)
@@ -97,12 +117,13 @@ class SSTable:
             key_cnt = 10
             while key_cnt:
                 key_cnt -= 1
-                curr_key, value = self.fetch_latest_kv_from_offset(f)
+                curr_key, value = fetch_latest_kv_from_offset(f)
                 if curr_key == key:
                     return value
 
         return ''
     
+    @staticmethod
     def create_sst_files(sstable = None, key = None, value = None, sparse_yn = False):
         current_offset = 0
         # 1. create data block file
@@ -176,9 +197,10 @@ class SSTable:
             sstable._commit_index_file()
             sstable._delete_wal(memtable)
 
-            SSTable._compaction()
-            
-            return sstable
+            new_sst = SSTable._compaction()
+            if new_sst:
+                return new_sst, True
+            return sstable, False
         except Exception as e:
             traceback.print_exc()
 
@@ -195,9 +217,9 @@ class SSTable:
         # 7. move ahead in the .sst file which was just peeked, and push it to the heap
         # 8. peek the heap again and repeat step 6
 
-        sst_files = glob.glob(f"{SSTable.sstdir}*.sst")
-        if len(sst_files < 3):
-            return
+        sst_files = glob.glob(f"{SSTable.sstdir}/*.sst")
+        if len(sst_files) < 3:
+            return None
 
         minheap = MinHeap()
 
@@ -214,25 +236,28 @@ class SSTable:
 
         while True:
             min_node = minheap.pop()
-            sstable.create_sst_files(
+            if min_node is None:
+                break
+
+            SSTable.create_sst_files(
                 sstable=sstable,
                 key=min_node.key,
                 value=min_node.value,
-                sparse_yn =  cnt % 10 == 0
+                sparse_yn = cnt % 10 == 0
             )
+            print(f'=>> {min_node.key}    {min_node.value}')
 
             sst_st = sst_files_state[min_node.filename]
             key, value = sst_st.read_next()
-            minheap.push(key=key, filename=file_st.filepath, value=min_node.filename)
+            if key is None:
+                print(f'=>> migrated_fully___{min_node.filename} ')
+                continue
+   
+            minheap.push(key=key, filename=min_node.filename, value=value)
 
-            # open sst_file
-            # key, value = _fetch_latest_kv_from_offset(fileObject)
-            # minheap.push(k, sst_file.name)
-            
+        sstable._commit_index_file()
+        # delete all the files less than current .sst filename
 
-            
-
-        
-
-
-        return
+        filename_threshold = int(sstable.filepath.split('/')[-1])
+        delete_sst_files_less_than(filename_threshold, SSTable.sstdir)
+        return sstable

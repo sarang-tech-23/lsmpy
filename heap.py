@@ -32,6 +32,8 @@ class MinHeap:
                 break
                 
     def pop(self):
+        if len(self.arr) == 0:
+            return None
         node = self.arr[0]
         heap_sz = len(self.arr)
         self.arr[0] = self.arr[heap_sz - 1]
@@ -51,10 +53,10 @@ class MinHeap:
             if c1_idx < heap_sz and self.arr[idx].key > self.arr[c1_idx].key:
                 self.arr[idx], self.arr[c1_idx] = self.arr[c1_idx], self.arr[idx]
                 idx = c1_idx
-            elif c2_idx <len and self.arr[idx].key > self.arr[c2_idx].key:
+            elif c2_idx < heap_sz and self.arr[idx].key > self.arr[c2_idx].key:
                 self.arr[idx], self.arr[c2_idx] = self.arr[c2_idx], self.arr[idx]
                 idx = c2_idx
-            elif c2_idx <len and self.arr[idx].key == self.arr[c2_idx].key and \
+            elif c2_idx < heap_sz and self.arr[idx].key == self.arr[c2_idx].key and \
                     self.arr[idx].filename > self.arr[c2_idx].filename:
                 self.arr[idx], self.arr[c2_idx] = self.arr[c2_idx], self.arr[idx]
                 idx = c2_idx

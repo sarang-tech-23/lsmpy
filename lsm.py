@@ -3,7 +3,7 @@ from memtable import Memtable, WAL
 from sstable import SSTable
 
 class LSMTree():
-    def __init__(self, mem_size=640):
+    def __init__(self, mem_size=6400):
         self.waldir = '/tmp/lsmpy/wal'
         self.sstdir = '/tmp/lsmpy/sst'
         self.inactive_memtables = []
@@ -94,8 +94,12 @@ class LSMTree():
             print(f'=>> memtable_size: {self.active_memtable.current_size} / {self.mem_size}')
             if self.active_memtable.current_size >= self.mem_size:
                 # todo
-                sstable = SSTable.create_sstable_from_memtable(self.active_memtable, self.active_memtable.key_cnt)
-                self.sstable_list.append(sstable)
+                sstable, replace_yn = SSTable.create_sstable_from_memtable(self.active_memtable, self.active_memtable.key_cnt)
+                
+                if replace_yn:
+                    self.sstable_list = [sstable]
+                else:
+                    self.sstable_list.append(sstable)
 
                 '''
                 1. migrate data to SStable
