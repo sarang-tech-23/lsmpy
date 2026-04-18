@@ -29,18 +29,24 @@ class LsmpyClient():
     def delete(self, k):
         return self._send_request(f'delete {k}')
 
-
-
 client = LsmpyClient()
 
+# set 
+key, value = 'name_1', 'aditya'
+print(client.set(key, value))
 
-for i in range(1, 5000):
-    print(client.set(f'name_{i}', f'aditya_{i}'))
-    print(client.get(f'name_{i}'))
-    # print(client.update(f'name_{i}', f'aditya_{i}{i}'))
+# get
+print(client.get(key))
 
-    # print(client.delete(f'name_{i}'))
+# update
+value = 'sarang'
+print(client.update(key, value))
 
-# print(client.delete('name'))
+# get
+print(client.get(key))
 
-# client.close()
+# delete
+print(client.delete(key))
+
+# get
+print(client.get(key))

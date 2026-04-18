@@ -91,7 +91,7 @@ class LSMTree():
         with self.write_lock:
             self.active_memtable.add(k=k, v=v)
             self.active_wal.append(k=k, v=v)
-            print(f'=>> memtable_size: {self.active_memtable.current_size} / {self.mem_size}')
+
             if self.active_memtable.current_size >= self.mem_size:
                 # todo
                 sstable, replace_yn = SSTable.create_sstable_from_memtable(self.active_memtable, self.active_memtable.key_cnt)

@@ -1,2 +1,2 @@
-TOMBSTONE = "__TOMBSTONE__"
+TOMBSTONE = "tobstone"
 BLOOM_FILTER_LEN = 10 ** 7

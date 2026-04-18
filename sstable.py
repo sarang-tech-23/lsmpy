@@ -154,7 +154,6 @@ class SSTable:
         save the sparse index and bloom filter binary file to disk
         '''
         # save sparse index file (.spx)
-        print(f'=>> dumping_sparse_index: {self.sparse_index_path}')
         with open(self.sparse_index_path, 'wb') as f:
             pickle.dump(self.sparse_index, f)
 
@@ -245,12 +244,10 @@ class SSTable:
                 value=min_node.value,
                 sparse_yn = cnt % 10 == 0
             )
-            print(f'=>> {min_node.key}    {min_node.value}')
 
             sst_st = sst_files_state[min_node.filename]
             key, value = sst_st.read_next()
             if key is None:
-                print(f'=>> migrated_fully___{min_node.filename} ')
                 continue
    
             minheap.push(key=key, filename=min_node.filename, value=value)

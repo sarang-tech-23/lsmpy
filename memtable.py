@@ -129,7 +129,6 @@ class Memtable():
         self.walpath = walpath
     
     def find(self, k):
-        print(f'->> memtable_find_k: {k}::{type(k)}')
         node = self.skiplist.find(k)
         if node is not False:
             return node.v

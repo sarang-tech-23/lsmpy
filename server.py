@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import socket, traceback
 from lsm import LSMTree
 
@@ -29,7 +30,6 @@ def req_handler(c_req):
         return op, k, v
 
     op, k, v = parser(c_req)
-    print(f'=>> operation_details {op}:::{k}:{v}')
     if k == '':
         return ''
 
@@ -48,24 +48,15 @@ def req_handler(c_req):
     
     return response
 
-
+# tcp server to handle client connections
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((HOST, PORT))
-    s.listen()
-
-    print(f"Server listening on {PORT}")
-
-    while True:
-        conn, addr = s.accept()
-        # print("Connected:", addr)
-
+    def handle_conn(conn):
         with conn:
             try: 
                 creq = read(conn)
                 if creq is None:
                     print("Client disconnected")
-                    break   # exit connection loop
+                    return   # exit connection loop
 
                 elif creq is not None:
                     response = req_handler(c_req=creq)
@@ -78,3 +69,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             except Exception as e:
                 traceback.print_exc()
                 print(f'server errro =>> {e}')
+
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((HOST, PORT))
+    s.listen()
+    print(f"Server listening on {PORT}")
+
+    # ThreadPoolExecutor reuses the same threads from pool of 10 and avoids overhead 
+    # of creating new one for every connection
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        while True:
+            conn, addr = s.accept()
+            executor.submit(handle_conn, conn)
+
+        
