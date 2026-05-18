@@ -6,7 +6,7 @@ class Node:
 
 class MinHeap:
     '''
-    Heap is binary tree to efficiently fetch min/max value, with heap
+    Heap is binary tree to efficiently fetch min/max value
     peek -> O(1)
     push/pop -> O log(K) -> k: no. of nodes in heap
     '''
@@ -43,22 +43,22 @@ class MinHeap:
     
     def _heapify_down(self):
         heap_sz = len(self.arr)
-        idx = 0 # -> this is my parent
+        par_idx = 0 
 
         while True:
             # if my parent is greater than any of the child swap with that child
-            c1_idx = (idx * 2) + 1
-            c2_idx = (idx * 2) + 2
-
-            if c1_idx < heap_sz and self.arr[idx].key > self.arr[c1_idx].key:
-                self.arr[idx], self.arr[c1_idx] = self.arr[c1_idx], self.arr[idx]
-                idx = c1_idx
-            elif c2_idx < heap_sz and self.arr[idx].key > self.arr[c2_idx].key:
-                self.arr[idx], self.arr[c2_idx] = self.arr[c2_idx], self.arr[idx]
-                idx = c2_idx
-            elif c2_idx < heap_sz and self.arr[idx].key == self.arr[c2_idx].key and \
-                    self.arr[idx].filename > self.arr[c2_idx].filename:
-                self.arr[idx], self.arr[c2_idx] = self.arr[c2_idx], self.arr[idx]
-                idx = c2_idx
+            c1_idx = (par_idx * 2) + 1
+            c2_idx = (par_idx * 2) + 2
+            swap_with_idx = -1
+            if c1_idx < heap_sz and self.arr[par_idx] > self.arr[c1_idx]:
+                swap_with_idx = c1_idx
+            else:
+                swap_with_idx = par_idx
+            if c2_idx < heap_sz and self.arr[swap_with_idx] > self.arr[c2_idx]:
+                swap_with_idx = c2_idx
+            
+            if swap_with_idx != par_idx:
+                self.arr[par_idx], self.arr[swap_with_idx] = self.arr[swap_with_idx], self.arr[par_idx]
+                par_idx = swap_with_idx
             else:
                 break
